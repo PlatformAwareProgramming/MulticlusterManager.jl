@@ -1,5 +1,13 @@
+# ------------------------------------------------------------------
+# Licensed under the MIT License. See LICENCE in the project root.
+# ------------------------------------------------------------------
+
 module MulticlusterManager
 
-greet() = print("Hello World!")
+using Distributed
+
+include("manager.jl")
+
+export addprocs_mpi
 
 end # module MulticlusterManager
