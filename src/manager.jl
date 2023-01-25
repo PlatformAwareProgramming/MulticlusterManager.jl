@@ -310,7 +310,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     if shell === :posix
         # ssh connects to a POSIX shell
 
-        cmds = "exec mpiexec $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
+        cmds = "exec mpiexec -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
         # set environment variables
         for (var, val) in env
             occursin(r"^[a-zA-Z_][a-zA-Z_0-9]*\z", var) ||
