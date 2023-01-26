@@ -314,7 +314,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     if shell === :posix
         # ssh connects to a POSIX shell
 
-        cmds = "exec mpiexec -hostfile \"$(hostfile)\" --map-by node -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
+        cmds = "exec mpiexec -hostfile $(Base.shell_escape_posixly(hostfile)) --map-by node -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
         # set environment variables
         for (var, val) in env
             occursin(r"^[a-zA-Z_][a-zA-Z_0-9]*\z", var) ||
@@ -330,7 +330,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     elseif shell === :csh
         # ssh connects to (t)csh
 
-        remotecmd = "exec mpiexec -hostfile \"$(hostfile)\" --map-by node -np 1 $(shell_escape_csh(exename)) $(shell_escape_csh(exeflags)) $(Base.shell_escape_posixly(other_processes))"
+        remotecmd = "exec mpiexec -hostfile $(shell_escape_csh(hostfile)) --map-by node -np 1 $(shell_escape_csh(exename)) $(shell_escape_csh(exeflags)) $(Base.shell_escape_posixly(other_processes))"
 
         # set environment variables
         for (var, val) in env
