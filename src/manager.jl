@@ -249,7 +249,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     tunnel = params[:tunnel]
     multiplex = params[:multiplex]
     cmdline_cookie = params[:cmdline_cookie]
-    hostfile = haskey(params, :hostfile) ? params[:hostfile] : "hostfile"
+    hostfile = haskey(params, :hostfile) ? params[:hostfile] : "~/hostfile"
     env = Dict{String,String}(params[:env])
 
     # machine could be of the format [user@]host[:port] bind_addr[:bind_port]
