@@ -174,6 +174,7 @@ end
 Distributed.default_addprocs_params(::MulticlusterSSHManager) =
     merge(Distributed.default_addprocs_params(),
           Dict{Symbol,Any}(
+              :hostfile       => "~/hostfile",
               :ssh            => "ssh",
               :sshflags       => ``,
               :shell          => :posix,
