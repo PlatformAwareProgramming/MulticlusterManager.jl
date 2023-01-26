@@ -249,6 +249,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     tunnel = params[:tunnel]
     multiplex = params[:multiplex]
     cmdline_cookie = params[:cmdline_cookie]
+    hostfile = haskey(params, :hostfile) ? params[:hostfile] : "hostfile"
     env = Dict{String,String}(params[:env])
 
     # machine could be of the format [user@]host[:port] bind_addr[:bind_port]
@@ -310,7 +311,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     if shell === :posix
         # ssh connects to a POSIX shell
 
-        cmds = "exec mpiexec -hostfile ~/hostfile --map-by node -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
+        cmds = "exec mpiexec -hostfile $hostfile --map-by node -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
         # set environment variables
         for (var, val) in env
             occursin(r"^[a-zA-Z_][a-zA-Z_0-9]*\z", var) ||
