@@ -174,9 +174,10 @@ end
 Distributed.default_addprocs_params(::MulticlusterSSHManager) =
     merge(Distributed.default_addprocs_params(),
           Dict{Symbol,Any}(
-              :hostfile       => "~/hostfile",
+              :hostfile       => "/home/heron/hostfile",
               :ssh            => "ssh",
               :sshflags       => ``,
+              :scpflags       => ``,
               :shell          => :posix,
               :cmdline_cookie => false,
               :env            => [],
@@ -250,6 +251,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     tunnel = params[:tunnel]
     multiplex = params[:multiplex]
     cmdline_cookie = params[:cmdline_cookie]
+
     @info "hosfile ???"
     hostfile = haskey(params, :hostfile) ? params[:hostfile] : "~/hostfile"
     @info "hosfile is $hostfile"
@@ -287,12 +289,17 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     portopt = portnum === nothing ? `` : `-p $portnum`
     sshflags = `$(params[:sshflags]) $portopt`
 
+    @info sshflags
+    # id = isnothing(identity_file) ? `` : `-i $identity_file`
+
     if tunnel
         # First it checks if ssh multiplexing has been already enabled and the master process is running.
         # If it's already running, later ssh sessions also use the same ssh multiplexing session even if
         # `multiplex` is not explicitly specified; otherwise the tunneling session launched later won't
         # go to background and hang. This is because of OpenSSH implementation.
-        if success(`$ssh $sshflags -O check $host`)
+        ccc = `$ssh $sshflags -O check $host`
+        @info ccc
+        if success(ccc)
             multiplex = true
         elseif multiplex
             # automatically create an SSH multiplexing session at the next SSH connection
@@ -321,7 +328,8 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
                 throw(ArgumentError("invalid env key $var"))
             cmds = "export $(var)=$(Base.shell_escape_posixly(val))\n$cmds"
         end
-        # change working directory
+        cmds = "module load mpi/OpenMPI\n$cmds"
+       # change working directory
         cmds = "cd -- $(Base.shell_escape_posixly(dir))\n$cmds"
 
         # shell login (-l) with string command (-c) to launch julia process
@@ -451,7 +459,3 @@ function addprocs(new_addresses::Vector{Tuple{String,Int}}, fromconfig)
     end
     sort!(launched_q)
 end
-
-
-
-
