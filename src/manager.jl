@@ -282,7 +282,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     while !isempty(worker_programs)
         msz = popfirst!(worker_programs)
         flr = popfirst!(worker_programs)
-        other_processes = `$other_processes : -np $msz $(params[:exename]) $flr mpi`
+        other_processes = `$other_processes : -np $msz -x UCX_WARN_UNUSED_ENV_VARS=n $(params[:exename]) $flr mpi`
     end
 
     host, portnum = parse_machine(machine_bind[1])
@@ -321,7 +321,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     if shell === :posix
         # ssh connects to a POSIX shell
 
-        cmds = "exec mpiexec -hostfile $(Base.shell_escape_posixly(hostfile)) --map-by node -x UCX_WARN_UNUSED_ENV_VARS=1 -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
+        cmds = "exec mpiexec -hostfile $(Base.shell_escape_posixly(hostfile)) --map-by node -x UCX_WARN_UNUSED_ENV_VARS=n -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
         # set environment variables
         for (var, val) in env
             occursin(r"^[a-zA-Z_][a-zA-Z_0-9]*\z", var) ||
