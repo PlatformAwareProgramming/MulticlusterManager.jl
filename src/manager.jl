@@ -46,7 +46,7 @@ Distributed.default_addprocs_params(::MulticlusterSSHManager) =
               :env            => [],
               :tunnel         => false,
               :multiplex      => false,
-              :which_mpi      => "MPICH"
+              :which_mpi      => "MPICH",
               :max_parallel   => 10))
 
 
