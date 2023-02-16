@@ -34,6 +34,22 @@ struct MulticlusterSSHManager <: Distributed.ClusterManager
     end
 end
 
+Distributed.default_addprocs_params(::MulticlusterSSHManager) =
+    merge(Distributed.default_addprocs_params(),
+          Dict{Symbol,Any}(
+              :hostfile       => "/home/heron/hostfile",
+              :ssh            => "ssh",
+              :sshflags       => ``,
+              :scpflags       => ``,
+              :shell          => :posix,
+              :cmdline_cookie => false,
+              :env            => [],
+              :tunnel         => false,
+              :multiplex      => false,
+              :which_mpi      => "MPICH"
+              :max_parallel   => 10))
+
+
 # MulticlusterSSHManager
 
 # start and connect to processes via SSH, optionally through an SSH tunnel.
@@ -171,19 +187,6 @@ function connectMPIWorkers(id)
      end
 end
 
-Distributed.default_addprocs_params(::MulticlusterSSHManager) =
-    merge(Distributed.default_addprocs_params(),
-          Dict{Symbol,Any}(
-              :hostfile       => "/home/heron/hostfile",
-              :ssh            => "ssh",
-              :sshflags       => ``,
-              :scpflags       => ``,
-              :shell          => :posix,
-              :cmdline_cookie => false,
-              :env            => [],
-              :tunnel         => false,
-              :multiplex      => false,
-              :max_parallel   => 10))
 
 function Distributed.launch(manager::MulticlusterSSHManager, params::Dict, launched::Array, launch_ntfy::Condition)
     # Launch one worker on each unique host in parallel. Additional workers are launched later.
@@ -251,6 +254,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     tunnel = params[:tunnel]
     multiplex = params[:multiplex]
     cmdline_cookie = params[:cmdline_cookie]
+    which_mpi = params[:which_mpi]
 
     @info "hosfile ???"
     hostfile = haskey(params, :hostfile) ? params[:hostfile] : "~/hostfile"
@@ -278,11 +282,17 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     worker_programs = [i for i in worker_programs]
     @info worker_programs
 
+    mpiexec_env = if which_mpi == "OpenMPI"
+                     `-x UCX_WARN_UNUSED_ENV_VARS=n`
+                  else
+                     `-env UCX_WARN_UNUSED_ENV_VARS n`
+                  end
+
     other_processes =  ``
     while !isempty(worker_programs)
         msz = popfirst!(worker_programs)
         flr = popfirst!(worker_programs)
-        other_processes = `$other_processes : -np $msz -x UCX_WARN_UNUSED_ENV_VARS=n $(params[:exename]) $flr mpi`
+        other_processes = `$other_processes : -np $msz $mpiexec_env $(params[:exename]) $flr mpi`
     end
 
     host, portnum = parse_machine(machine_bind[1])
@@ -317,11 +327,12 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
         end
     end
 
+  
     # Julia process with passed in command line flag arguments
     if shell === :posix
         # ssh connects to a POSIX shell
 
-        cmds = "exec mpiexec -hostfile $(Base.shell_escape_posixly(hostfile)) --map-by node -x UCX_WARN_UNUSED_ENV_VARS=n -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
+        cmds = "exec mpiexec -hostfile $(Base.shell_escape_posixly(hostfile)) --map-by node $(Base.shell_escape_posixly(mpiexec_env)) -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
         # set environment variables
         for (var, val) in env
             occursin(r"^[a-zA-Z_][a-zA-Z_0-9]*\z", var) ||
