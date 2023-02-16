@@ -328,7 +328,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
                 throw(ArgumentError("invalid env key $var"))
             cmds = "export $(var)=$(Base.shell_escape_posixly(val))\n$cmds"
         end
-        cmds = "module load mpi/OpenMPI\n$cmds"
+        cmds = "module load mpi/OpenMPI\nUCX_WARN_UNUSED_ENV_VARS=n\n$cmds"
        # change working directory
         cmds = "cd -- $(Base.shell_escape_posixly(dir))\n$cmds"
 
@@ -409,6 +409,107 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     notify(launch_ntfy)
 end
 
+
+function Distributed.start_worker(out::IO, cookie::AbstractString=readline(stdin); close_stdin::Bool=true, stderr_to_stdout::Bool=true)
+    Distributed.init_multi()
+
+    if close_stdin # workers will not use it
+        redirect_stdin(devnull)
+        close(stdin)
+    end
+    stderr_to_stdout && redirect_stderr(stdout)
+
+    init_worker(cookie)
+    interface = IPv4(LPROC.bind_addr)
+    if LPROC.bind_port == 0
+        port_hint = 9000 + (getpid() % 1000)
+        (port, sock) = listenany(interface, UInt16(port_hint))
+        LPROC.bind_port = port
+    else
+        sock = listen(interface, LPROC.bind_port)
+    end
+    errormonitor(@async while isopen(sock)
+        client = accept(sock)
+        Distributed.process_messages(client, client, true)
+    end)
+    println(out, "julia_worker:$(string(LPROC.bind_port))#$(LPROC.bind_addr)")  # print header
+    flush(out)
+
+    Sockets.nagle(sock, false)
+    Sockets.quickack(sock, true)
+
+    if ccall(:jl_running_on_valgrind,Cint,()) != 0
+        println(out, "PID = $(getpid())")
+    end
+
+    try
+        # To prevent hanging processes on remote machines, newly launched workers exit if the
+        # master process does not connect in time.
+        Distributed.check_master_connect()
+        while true; wait(); end
+    catch err
+        print(stderr, "unhandled exception on $(myid()): $(err)\nexiting.\n")
+    end
+
+    close(sock)
+    exit(0)
+end
+
+
+function Distributed.read_worker_host_port(io::IO)
+    t0 = time_ns()
+
+    # Wait at most for JULIA_WORKER_TIMEOUT seconds to read host:port
+    # info from the worker
+    timeout = Distributed.worker_timeout() * 1e9
+    # We expect the first line to contain the host:port string. However, as
+    # the worker may be launched via ssh or a cluster manager like SLURM,
+    # ignore any informational / warning lines printed by the launch command.
+    # If we do not find the host:port string in the first 1000 lines, treat it
+    # as an error.
+
+    ntries = 1000
+    leader = String[]
+    try
+        while ntries > 0
+            readtask = @async readline(io)
+            yield()
+            while !istaskdone(readtask) && ((time_ns() - t0) < timeout)
+                print(".")
+                sleep(0.5)
+            end
+            @info "PASSSSS 1"
+            !istaskdone(readtask) && break
+            @info "PASSSSS 2"
+
+            conninfo = fetch(readtask)
+            @info "PASSSSSS 3 $conninfo"
+            if isempty(conninfo) && !isopen(io)
+                throw(Distributed.LaunchWorkerError("Unable to read host:port string from worker. Launch command exited with error?"))
+            end
+
+            ntries -= 1
+            bind_addr, port = Distributed.parse_connection_info(conninfo)
+            @info "isempty(bind_addr): $(isempty(bind_addr)) ... $bind_addr $port"
+            if !isempty(bind_addr)
+                return bind_addr, port
+            end
+
+            # collect unmatched lines
+            push!(leader, conninfo)
+        end
+        close(io)
+        if ntries > 0
+            throw(Distributed.LaunchWorkerError("Timed out waiting to read host:port string from worker."))
+        else
+            throw(Distributed.LaunchWorkerError("Unexpected output from worker launch command. Host:port string not found."))
+        end
+    finally
+        for line in leader
+            println("\tFrom worker startup:\t", line)
+        end
+    end
+end
 
 function Distributed.manage(manager::MulticlusterSSHManager, id::Integer, config::WorkerConfig, op::Symbol)
     id = Int(id)
