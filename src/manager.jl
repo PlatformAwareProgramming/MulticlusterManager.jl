@@ -328,7 +328,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
                 throw(ArgumentError("invalid env key $var"))
             cmds = "export $(var)=$(Base.shell_escape_posixly(val))\n$cmds"
         end
-        cmds = "module load mpi/OpenMPI\nUCX_WARN_UNUSED_ENV_VARS=n\n$cmds"
+        cmds = "module load mpi/OpenMPI\n$cmds"
        # change working directory
         cmds = "cd -- $(Base.shell_escape_posixly(dir))\n$cmds"
 
@@ -455,7 +455,7 @@ function Distributed.start_worker(out::IO, cookie::AbstractString=readline(stdin
     exit(0)
 end
 
-
+#=
 function Distributed.read_worker_host_port(io::IO)
     t0 = time_ns()
 
@@ -510,6 +510,7 @@ function Distributed.read_worker_host_port(io::IO)
         end
     end
 end
+=#
 
 function Distributed.manage(manager::MulticlusterSSHManager, id::Integer, config::WorkerConfig, op::Symbol)
     id = Int(id)
