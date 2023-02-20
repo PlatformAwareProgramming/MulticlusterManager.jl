@@ -233,7 +233,7 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
         end
         sem = Distributed.tunnel_hosts_map[pubhost]
 
-        @info "ssh.flags=$(ssh.flags)"
+        @info "ssh_flags=$(config.sshflags)"
         sshflags = Base.notnothing(config.sshflags)
         multiplex = something(config.multiplex, false)
         Base.acquire(sem)
