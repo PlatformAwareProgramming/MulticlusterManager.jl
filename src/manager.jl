@@ -201,7 +201,7 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
         bind_addr = something(config.bind_addr, pubhost)
         @info "CONNECT 1 $pubhost   $port   $bind_addr"
     else
-        @info "CONNECT 2 -- $(config.connect_at)"
+        @info "CONNECT 2 -- $(config.connect_at) -- config.host=$(config.host)"
         (bind_addr, port::Int) = config.connect_at !== nothing ? config.connect_at : Distributed.read_worker_host_port(config.io)
         pubhost = something(config.host, bind_addr)
         config.host = pubhost
