@@ -222,10 +222,10 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
     end
 
     if tunnel
-        if !haskey(tunnel_hosts_map, pubhost)
-            tunnel_hosts_map[pubhost] = Semaphore(something(config.max_parallel, typemax(Int)))
+        if !haskey(Distributed.tunnel_hosts_map, pubhost)
+            Distributed.tunnel_hosts_map[pubhost] = Semaphore(something(config.max_parallel, typemax(Int)))
         end
-        sem = tunnel_hosts_map[pubhost]
+        sem = Distributed.tunnel_hosts_map[pubhost]
 
         sshflags = notnothing(config.sshflags)
         multiplex = something(config.multiplex, false)
