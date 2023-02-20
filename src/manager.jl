@@ -187,7 +187,7 @@ function connectMPIWorkers(id)
      end
 end
 
-function connect(manager::ClusterManager, pid::Int, config::WorkerConfig)
+function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerConfig)
   #=  if config.connect_at !== nothing
         # this is a worker-to-worker setup call.
         return connect_w2w(pid, config)
