@@ -187,6 +187,72 @@ function connectMPIWorkers(id)
      end
 end
 
+function connect(manager::ClusterManager, pid::Int, config::WorkerConfig)
+  #=  if config.connect_at !== nothing
+        # this is a worker-to-worker setup call.
+        return connect_w2w(pid, config)
+    end =#
+
+    # master connecting to workers
+    if config.io !== nothing
+        (bind_addr, port::Int) = config.connect_at !== nothing ? config.connect_at : read_worker_host_port(config.io)
+        pubhost = something(config.host, bind_addr)
+        config.host = pubhost
+        config.port = port
+    else
+        pubhost = notnothing(config.host)
+        port = notnothing(config.port)
+        bind_addr = something(config.bind_addr, pubhost)
+    end
+
+    tunnel = something(config.tunnel, false)
+
+    s = split(pubhost,'@')
+    user = ""
+    if length(s) > 1
+        user = s[1]
+        pubhost = s[2]
+    else
+        if haskey(ENV, "USER")
+            user = ENV["USER"]
+        elseif tunnel
+            error("USER must be specified either in the environment ",
+                  "or as part of the hostname when tunnel option is used")
+        end
+    end
+
+    if tunnel
+        if !haskey(tunnel_hosts_map, pubhost)
+            tunnel_hosts_map[pubhost] = Semaphore(something(config.max_parallel, typemax(Int)))
+        end
+        sem = tunnel_hosts_map[pubhost]
+
+        sshflags = notnothing(config.sshflags)
+        multiplex = something(config.multiplex, false)
+        acquire(sem)
+        try
+            (s, bind_addr, forward) = connect_to_worker_with_tunnel(pubhost, bind_addr, port, user, sshflags, multiplex)
+            config.forward = forward
+        finally
+            release(sem)
+        end
+    else
+        (s, bind_addr) = connect_to_worker(bind_addr, port)
+    end
+
+    config.bind_addr = bind_addr
+
+    # write out a subset of the connect_at required for further worker-worker connection setups
+    config.connect_at = (bind_addr, port)
+
+    if config.io !== nothing
+        let pid = pid
+            redirect_worker_output(pid, notnothing(config.io))
+        end
+    end
+
+    (s, s)
+end
 
 function Distributed.launch(manager::MulticlusterSSHManager, params::Dict, launched::Array, launch_ntfy::Condition)
     # Launch one worker on each unique host in parallel. Additional workers are launched later.
