@@ -223,7 +223,7 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
 
     if tunnel
         if !haskey(Distributed.tunnel_hosts_map, pubhost)
-            Distributed.tunnel_hosts_map[pubhost] = Semaphore(something(config.max_parallel, typemax(Int)))
+            Distributed.tunnel_hosts_map[pubhost] = Base.Semaphore(something(config.max_parallel, typemax(Int)))
         end
         sem = Distributed.tunnel_hosts_map[pubhost]
 
