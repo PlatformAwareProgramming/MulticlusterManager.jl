@@ -195,7 +195,7 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
 
     # master connecting to workers
     if config.io !== nothing
-        (bind_addr, port::Int) = config.connect_at !== nothing ? config.connect_at : read_worker_host_port(config.io)
+        (bind_addr, port::Int) = config.connect_at !== nothing ? config.connect_at : Distributed.read_worker_host_port(config.io)
         pubhost = something(config.host, bind_addr)
         config.host = pubhost
         config.port = port
@@ -231,13 +231,13 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
         multiplex = something(config.multiplex, false)
         acquire(sem)
         try
-            (s, bind_addr, forward) = connect_to_worker_with_tunnel(pubhost, bind_addr, port, user, sshflags, multiplex)
+            (s, bind_addr, forward) = Distributed.connect_to_worker_with_tunnel(pubhost, bind_addr, port, user, sshflags, multiplex)
             config.forward = forward
         finally
             release(sem)
         end
     else
-        (s, bind_addr) = connect_to_worker(bind_addr, port)
+        (s, bind_addr) = Distributed.connect_to_worker(bind_addr, port)
     end
 
     config.bind_addr = bind_addr
@@ -247,7 +247,7 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
 
     if config.io !== nothing
         let pid = pid
-            redirect_worker_output(pid, notnothing(config.io))
+            Distributed.redirect_worker_output(pid, notnothing(config.io))
         end
     end
 
