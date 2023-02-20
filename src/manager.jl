@@ -200,8 +200,8 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
         config.host = pubhost
         config.port = port
     else
-        pubhost = notnothing(config.host)
-        port = notnothing(config.port)
+        pubhost = Base.notnothing(config.host)
+        port = Base.notnothing(config.port)
         bind_addr = something(config.bind_addr, pubhost)
     end
 
@@ -227,7 +227,7 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
         end
         sem = Distributed.tunnel_hosts_map[pubhost]
 
-        sshflags = notnothing(config.sshflags)
+        sshflags = Base.notnothing(config.sshflags)
         multiplex = something(config.multiplex, false)
         acquire(sem)
         try
@@ -247,7 +247,7 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
 
     if config.io !== nothing
         let pid = pid
-            Distributed.redirect_worker_output(pid, notnothing(config.io))
+            Distributed.redirect_worker_output(pid, Base.notnothing(config.io))
         end
     end
 
@@ -492,8 +492,8 @@ function Distributed.manage(manager::MulticlusterSSHManager, id::Integer, config
     if op === :interrupt
         ospid = config.ospid
         if ospid !== nothing
-            host = notnothing(config.host)
-            sshflags = notnothing(config.sshflags)
+            host = Base.notnothing(config.host)
+            sshflags = Base.notnothing(config.sshflags)
             if !success(`ssh -T -a -x -o ClearAllForwardings=yes -n $sshflags $host "kill -2 $ospid"`)
                 @error "Error sending a Ctrl-C to julia worker $id on $host"
             end
