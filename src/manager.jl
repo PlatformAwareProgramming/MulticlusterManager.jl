@@ -194,15 +194,15 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
     end =#
 
     # master connecting to workers
-    if config.io !== nothing
+    if config.io === nothing && config.host !== nothing
+        pubhost = notnothing(config.host)
+        port = notnothing(config.port)
+        bind_addr = something(config.bind_addr, pubhost)
+    else
         (bind_addr, port::Int) = config.connect_at !== nothing ? config.connect_at : Distributed.read_worker_host_port(config.io)
         pubhost = something(config.host, bind_addr)
         config.host = pubhost
         config.port = port
-    else
-        pubhost = Base.notnothing(config.host)
-        port = Base.notnothing(config.port)
-        bind_addr = something(config.bind_addr, pubhost)
     end
 
     tunnel = something(config.tunnel, false)
