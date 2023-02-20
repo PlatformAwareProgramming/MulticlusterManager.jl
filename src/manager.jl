@@ -229,12 +229,12 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
 
         sshflags = Base.notnothing(config.sshflags)
         multiplex = something(config.multiplex, false)
-        acquire(sem)
+        Base.acquire(sem)
         try
             (s, bind_addr, forward) = Distributed.connect_to_worker_with_tunnel(pubhost, bind_addr, port, user, sshflags, multiplex)
             config.forward = forward
         finally
-            release(sem)
+            Base.release(sem)
         end
     else
         (s, bind_addr) = Distributed.connect_to_worker(bind_addr, port)
