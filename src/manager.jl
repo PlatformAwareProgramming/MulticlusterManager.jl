@@ -244,8 +244,10 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
         multiplex = something(config.multiplex, false)
         Base.acquire(sem)
         try
+            @info "CONNECT 3 - BEGIN"
             (s, bind_addr, forward) = Distributed.connect_to_worker_with_tunnel(pubhost, bind_addr, port, user, sshflags, multiplex)
             config.forward = forward
+            @info "CONNECT 3 - END -- forward=$forward"
         finally
             Base.release(sem)
         end
