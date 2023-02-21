@@ -203,8 +203,10 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
     else
         @info "CONNECT 2 -- $(config.connect_at) -- config.host=$(config.host) -- config.port=$(config.port)"
         (bind_addr, port::Int) = config.connect_at !== nothing ? config.connect_at[3] : Distributed.read_worker_host_port(config.io)
-        config.host = config.connect_at[1]
-        config.sshflags = config.connect_at[2]
+        if (config.connect_at !== nothing)
+            config.host = config.connect_at[1]
+            config.sshflags = config.connect_at[2]
+        end
         pubhost = something(config.host, bind_addr)
         config.host = pubhost
         config.port = port
