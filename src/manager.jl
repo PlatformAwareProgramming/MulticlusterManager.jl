@@ -202,11 +202,13 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
         @info "CONNECT 1 $pubhost   $port   $bind_addr"
     else
         @info "CONNECT 2 -- $(config.connect_at) -- config.host=$(config.host) -- config.port=$(config.port)"
-        (bind_addr, port::Int) = config.connect_at !== nothing ? config.connect_at[4] : Distributed.read_worker_host_port(config.io)
+        (bind_addr, port::Int) = config.connect_at !== nothing ? config.connect_at[6] : Distributed.read_worker_host_port(config.io)
         if (config.connect_at !== nothing)
             config.host = config.connect_at[1]
             config.sshflags = config.connect_at[2]
             config.tunnel = config.connect_at[3]
+            config.multiplex = config.connect_at[4]
+            config.max_parallel = config.connect_at[5]
         end
         pubhost = something(config.host, bind_addr)
         config.host = pubhost
@@ -238,7 +240,6 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
         end
         sem = Distributed.tunnel_hosts_map[pubhost]
 
-        @info "ssh_flags=$(config.sshflags)" # -i /home/heron/hpc-shelf-credential.pem -p 8080
         sshflags = Base.notnothing(config.sshflags)
         multiplex = something(config.multiplex, false)
         Base.acquire(sem)
@@ -255,7 +256,7 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
     config.bind_addr = bind_addr
 
     # write out a subset of the connect_at required for further worker-worker connection setups
-    config.connect_at = (config.host, config.sshflags, config.tunnel, (bind_addr, port))
+    config.connect_at = (config.host, config.sshflags, config.tunnel, config.multiplex, config.max_parallel, (bind_addr, port))
 
     if config.io !== nothing
         let pid = pid
