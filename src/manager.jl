@@ -187,6 +187,37 @@ function connectMPIWorkers(id)
      end
 end
 
+function Distributed.ssh_tunnel(user, host, bind_addr, port, sshflags, multiplex)
+    port = Int(port)
+    cnt = ntries = 100
+
+    # the connection is forwarded to `port` on the remote server over the local port `localport`
+    while cnt > 0
+        localport = Distributed.next_tunnel_port()
+        if multiplex
+            # It assumes that an ssh multiplexing session has been already started by the remote worker.
+            cmd = `ssh $sshflags -O forward -L $localport:$bind_addr:$port $user@$host`
+        else
+            # if we cannot do port forwarding, fail immediately
+            # the -f option backgrounds the ssh session
+            # `sleep 60` command specifies that an allotted time of 60 seconds is allowed to start the
+            # remote julia process and establish the network connections specified by the process topology.
+            # If no connections are made within 60 seconds, ssh will exit and an error will be printed on the
+            # process that launched the remote process.
+            ssh = `ssh -T -a -x -o ExitOnForwardFailure=yes`
+            cmd = detach(`$ssh -f $sshflags $user@$host -L $localport:$bind_addr:$port sleep 60`)
+        end
+        @info "SSH TUNNEL: $cmd"
+        if success(cmd)
+            return localport
+        end
+        cnt -= 1
+    end
+
+    throw(ErrorException(
+        string("unable to create SSH tunnel after ", ntries, " tries. No free port?")))
+end
+
 function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerConfig)
   #=  if config.connect_at !== nothing
         # this is a worker-to-worker setup call.
