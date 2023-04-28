@@ -187,6 +187,7 @@ function connectMPIWorkers(id)
      end
 end
 
+#=
 function Distributed.ssh_tunnel(user, host, bind_addr, port, sshflags, multiplex)
     port = Int(port)
     cnt = ntries = 100
@@ -217,6 +218,7 @@ function Distributed.ssh_tunnel(user, host, bind_addr, port, sshflags, multiplex
     throw(ErrorException(
         string("unable to create SSH tunnel after ", ntries, " tries. No free port?")))
 end
+
 
 function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerConfig)
   #=  if config.connect_at !== nothing
@@ -299,6 +301,7 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
 
     (s, s)
 end
+=#
 
 function Distributed.launch(manager::MulticlusterSSHManager, params::Dict, launched::Array, launch_ntfy::Condition)
     # Launch one worker on each unique host in parallel. Additional workers are launched later.
