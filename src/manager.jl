@@ -300,7 +300,7 @@ function Distributed.connect(manager::ClusterManager, pid::Int, config::WorkerCo
     end
 
     (s, s)
-end
+end 
 =#
 
 function Distributed.launch(manager::MulticlusterSSHManager, params::Dict, launched::Array, launch_ntfy::Condition)
