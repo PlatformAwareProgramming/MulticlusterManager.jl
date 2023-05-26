@@ -454,7 +454,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
                 throw(ArgumentError("invalid env key $var"))
             cmds = "export $(var)=$(Base.shell_escape_posixly(val))\n$cmds"
         end
-        cmds = "module load mpi/OpenMPI\n$cmds"
+        cmds = "module load openmpi\n$cmds"
        # change working directory
         cmds = "cd -- $(Base.shell_escape_posixly(dir))\n$cmds"
 
