@@ -47,6 +47,7 @@ Distributed.default_addprocs_params(::MulticlusterSSHManager) =
               :tunnel         => false,
               :multiplex      => false,
               :which_mpi      => "MPICH",
+              :mpirun         => "mpiexec",
               :max_parallel   => 10))
 
 
@@ -370,6 +371,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     multiplex = params[:multiplex]
     cmdline_cookie = params[:cmdline_cookie]
     which_mpi = params[:which_mpi]
+    mpirun = params[:mpirun]
 
     @info "hosfile ???"
     hostfile = haskey(params, :hostfile) ? params[:hostfile] : "~/hostfile"
@@ -447,7 +449,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     if shell === :posix
         # ssh connects to a POSIX shell
 
-        cmds = "exec mpiexec -hostfile $(Base.shell_escape_posixly(hostfile)) --map-by node $(Base.shell_escape_posixly(mpiexec_env)) -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
+        cmds = "exec $(Base.shell_escape_posixly(mpirun)) -hostfile $(Base.shell_escape_posixly(hostfile)) --map-by node $(Base.shell_escape_posixly(mpiexec_env)) -np 1 $(Base.shell_escape_posixly(exename)) $(Base.shell_escape_posixly(exeflags)) $(Base.shell_escape_posixly(other_processes))"
         # set environment variables
         for (var, val) in env
             occursin(r"^[a-zA-Z_][a-zA-Z_0-9]*\z", var) ||
@@ -464,7 +466,7 @@ function Distributed.launch_on_machine(manager::MulticlusterSSHManager, machine:
     elseif shell === :csh
         # ssh connects to (t)csh
 
-        remotecmd = "exec mpiexec -hostfile $(shell_escape_csh(hostfile)) --map-by node -np 1 $(shell_escape_csh(exename)) $(shell_escape_csh(exeflags)) $(Base.shell_escape_posixly(other_processes))"
+        remotecmd = "exec $(shell_escape_csh(mpirun)) -hostfile $(shell_escape_csh(hostfile)) --map-by node -np 1 $(shell_escape_csh(exename)) $(shell_escape_csh(exeflags)) $(Base.shell_escape_posixly(other_processes))"
 
         # set environment variables
         for (var, val) in env
